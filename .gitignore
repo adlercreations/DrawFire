@@ -1,0 +1,51 @@
+# Ignore node_modules (for React frontend)
+client/node_modules/
+
+# Ignore build files
+client/build/
+
+# Ignore Python virtual environment (for Flask backend)
+server/venv/
+
+# Ignore environment variables
+server/.env
+server/.flaskenv
+
+# Ignore temporary files and static assets
+server/static/temp_image.jpg
+
+# Ignore compiled Python files
+server/__pycache__/
+*.py[cod]
+
+# Ignore macOS system files
+.DS_Store
+
+# Ignore log files
+*.log
+
+
+# # Node modules (for React frontend)
+# client/node_modules/
+
+# # Python virtual environment (for Flask backend)
+# server/venv/
+
+# # Environment variables
+# server/.env
+
+# # Flask settings
+# server/.flaskenv
+
+# # macOS system files
+# .DS_Store
+
+# # Log files
+# *.log
+
+# # Temporary files
+# server/static/temp_image.jpg
+
+# # Compiled Python files
+# __pycache__/
+# *.py[cod]
