@@ -11,7 +11,7 @@ function App() {
   return (
     <Router>
       <div className="header">
-        <h1>DrawFire</h1>
+        <h1>🔥 DrawFire 🔥</h1>
         <nav>
           <Link to="/">Home</Link> | <Link to="/upload">Upload</Link> | 
           <Link to="/submitted">Submitted</Link> | 
@@ -22,7 +22,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/upload" element={<Upload setImages={setImages} />} />
-          <Route path="/submitted" element={<Submitted images={images} />} />
+          <Route path="/submitted" element={<Submitted images={images} setImages={setImages} />} />
           <Route path="/improve" element={<Improve />} />
         </Routes>
       </div>

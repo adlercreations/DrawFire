@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 
 function Upload({ setImages }) {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
   const [uploadedURL, setUploadedURL] = useState(null);
+  const fileInputRef = useRef(null);
   
   const handleImageChange = (event) => {
     const file = event.target.files[0];
@@ -26,7 +27,11 @@ function Upload({ setImages }) {
 
       const result = await response.json();
       alert(result.message);
-      setUploadedURL(result.url);
+      // setUploadedURL(result.url);
+
+      setImage(null);
+      setImagePreview(null);
+      fileInputRef.current.value = '';
 
       const imagesResponse = await fetch('http://localhost:8000/submitted');
       const imagesData = await imagesResponse.json();
@@ -39,13 +44,38 @@ function Upload({ setImages }) {
   };
 
   return (
-    <div className="container">
+    <div className="upload-container">
       <form onSubmit={handleUpload}>
-        <input type="file" onChange={handleImageChange} />
-        {imagePreview && <img src={imagePreview} alt="Preview" width="200" />}
-        <button type="submit">Upload</button>
+        <div className="file-input-wrapper">
+          <button
+            type="button"
+            className='custom-file-button'
+            onClick={() => fileInputRef.current.click()}
+          >
+            Choose file
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            className='file-input'
+            onChange={handleImageChange}
+          />
+          <span className="file-name">
+            {image ? image.name : 'No file chosen'}
+          </span>
+        </div>
+        <div className="preview-and-button">
+          {imagePreview && (
+            <img src={imagePreview} alt="Preview" />
+          )}
+          <button type="submit">Upload</button>
+        </div>
       </form>
-      {uploadedURL && <p>Uploaded Image URL: {uploadedURL}</p>}
+      {uploadedURL && (
+        <div>
+          <p>Uploaded Image URL: {uploadedURL}</p>
+        </div>
+      )}
     </div>
   );
 }
