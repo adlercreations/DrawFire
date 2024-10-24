@@ -23,29 +23,3 @@ server/__pycache__/
 
 # Ignore log files
 *.log
-
-
-# # Node modules (for React frontend)
-# client/node_modules/
-
-# # Python virtual environment (for Flask backend)
-# server/venv/
-
-# # Environment variables
-# server/.env
-
-# # Flask settings
-# server/.flaskenv
-
-# # macOS system files
-# .DS_Store
-
-# # Log files
-# *.log
-
-# # Temporary files
-# server/static/temp_image.jpg
-
-# # Compiled Python files
-# __pycache__/
-# *.py[cod]

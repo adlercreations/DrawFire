@@ -68,3 +68,25 @@ button {
 button:hover {
   background-color: #0056b3;
 }
+
+.image-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.image-gallery img {
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  margin: 10px;
+  transition: transform 0.2s;
+}
+
+.image-gallery img:hover {
+  transform: scale(1.1);
+  border-color: #007bff;
+}
+
+.suggestions {
+  margin-top: 20px;
+}

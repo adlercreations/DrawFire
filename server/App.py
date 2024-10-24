@@ -1,56 +1,63 @@
 import os
 from flask import Flask, request, jsonify, make_response
 from flask_cors import CORS
-import openai
+from openai import OpenAI
 import cloudinary
 import cloudinary.uploader
 import cv2
 import numpy as np
 from dotenv import load_dotenv
+import requests
 
-# Load environment variables
+# Load environment variables from .env
 load_dotenv()
 
 # Initialize Flask app
 app = Flask(__name__, static_folder='static', static_url_path='/static')
 CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
 
-cloudinary.config( 
+# Configure Cloudinary
+cloudinary.config(
     cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
     api_key=os.getenv('CLOUDINARY_API_KEY'),
     api_secret=os.getenv('CLOUDINARY_API_SECRET')
 )
-if not os.getenv('CLOUDINARY_CLOUD_NAME') or not os.getenv('CLOUDINARY_API_KEY') or not os.getenv('CLOUDINARY_API_SECRET'):
-    raise ValueError('Cloudinary configuration is missing or incomplete')
 
+# Ensure Cloudinary configuration is present
+if not all([os.getenv('CLOUDINARY_CLOUD_NAME'),
+            os.getenv('CLOUDINARY_API_KEY'),
+            os.getenv('CLOUDINARY_API_SECRET')]):
+    raise ValueError("Cloudinary configuration is missing or incomplete.")
 
+# # Configure OpenAI API
+# openai.api_key = os.getenv("OPENAI_API_KEY")
+client = OpenAI(
+    api_key=os.environ.get("OPENAI_API_KEY"),
+)
 
-# optimize_url, _ = cloudinary_url("shoes", fetch_format="auto", quality="auto")
-# print(optimize_url)
+print(f"OpenAI API Key: {os.getenv('OPENAI_API_KEY')}")
 
-
-# auto_crop_url, _ = cloudinary_url("shoes", width=500, height=500, crop="auto", gravity="auto")
-# print(auto_crop_url)
-
-openai.api_key = os.getenv("OPENAI_API_KEY")
-
-images = []  # Store uploaded images in memory (or database in the future)
-
+# Store uploaded images in memory
+images = []
 
 def analyze_drawing(image_path):
     """Analyze the drawing using OpenCV to generate metadata."""
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    edges = cv2.Canny(image, threshold1=30, threshold2=100)
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    contour_count = len(contours)
-    non_zero_pixels = np.count_nonzero(edges)
-    line_coverage = non_zero_pixels / edges.size
-    return {
-        "contour_count": contour_count,
-        "line_coverage": round(line_coverage, 2),
-        "drawing_style": "detailed" if line_coverage > 0.1 else "minimalistic"
-    }
+    try:
+        image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        edges = cv2.Canny(image, threshold1=30, threshold2=100)
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+        contour_count = len(contours)
+        non_zero_pixels = np.count_nonzero(edges)
+        line_coverage = non_zero_pixels / edges.size
+
+        return {
+            "contour_count": contour_count,
+            "line_coverage": round(line_coverage, 2),
+            "drawing_style": "detailed" if line_coverage > 0.1 else "minimalistic"
+        }
+    except Exception as e:
+        raise RuntimeError(f"Error during image analysis: {str(e)}")
 
 @app.route('/upload', methods=['POST'])
 def upload_image():
@@ -59,102 +66,76 @@ def upload_image():
         return make_response(jsonify({"error": "No image file provided"}), 400)
 
     file = request.files['image']
-    upload_result = cloudinary.uploader.upload(file)
-    image_url = upload_result['secure_url']
-    images.append({'url': image_url})
-
-    return jsonify({'message': 'Image uploaded successfully!', 'url': image_url}), 200
-
-
-@app.route('/improve', methods=['POST'])
-def improve_image():
-    """Generate suggestions using OpenAI based on the drawing description and metadata."""
-    data = request.json
-    image_url = data.get('image_url')
-    drawing_description = data.get('description')
-
-    # Download the image from Cloudinary and analyze it
-    image_path = f'static/temp_image.jpg'
-    os.system(f'wget -O {image_path} {image_url}')
-    metadata = analyze_drawing(image_path)
-
-    # Generate suggestions from OpenAI
-    prompt = (
-        f"My drawing: {drawing_description}. "
-        f"It has {metadata['contour_count']} primary shapes and the style is {metadata['drawing_style']}. "
-        "How can I improve it?"
-    )
-
     try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[
-                {"role": "system", "content": "You are an expert artist and illustrator."},
-                {"role": "user", "content": prompt}
-            ],
-            temperature=0.7,
-            max_tokens=150
-        )
-        suggestions = response.choices[0].message['content']
-        return jsonify({"suggestion": suggestions}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        upload_result = cloudinary.uploader.upload(file)
+        image_url = upload_result['secure_url']
+        images.append({'url': image_url})
 
+        return jsonify({'message': 'Image uploaded successfully!', 'url': image_url}), 200
+    except Exception as e:
+        return jsonify({"error": f"Failed to upload image: {str(e)}"}), 500
 
 @app.route('/submitted', methods=['GET'])
 def get_images():
-    """Return all uploaded images."""
+    """Return all submitted images."""
     return jsonify(images), 200
 
+@app.route('/improve', methods=['POST'])
+def improve_image():
+    """Download the image, process it with OpenCV, and generate suggestions using OpenAI."""
+    data = request.json
+    image_url = data.get('image_url')
+
+    print(f"Received image_url: {image_url}")
+
+    # Download the image from Cloudinary
+    image_path = 'static/temp_image.jpg'
+    try:
+        response = requests.get(image_url)
+        response.raise_for_status()  # Raise an error for failed HTTP requests
+        with open(image_path, 'wb') as f:
+            f.write(response.content)
+        print(f"Image downloaded successfully to {image_path}")
+    except Exception as e:
+        print(f"Failed to download image: {e}")
+        return jsonify({"error": f"Failed to download image: {str(e)}"}), 500
+
+    # Analyze the image using OpenCV
+    try:
+        metadata = analyze_drawing(image_path)
+        print(f"Image analysis metadata: {metadata}")
+    except RuntimeError as e:
+        print(f"Image analysis failed: {e}")
+        return jsonify({"error": str(e)}), 500
+
+    # Create a prompt for OpenAI based on the image metadata
+    prompt = (
+        f"The drawing has {metadata['contour_count']} primary shapes and "
+        f"the style is {metadata['drawing_style']}. How can I improve it?"
+    )
+    print(f"Generated prompt for OpenAI: {prompt}")
+
+    # Generate suggestions using OpenAI API
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4",
+            messages=[
+                {"role": "system", "content": "You are an expert artist and illustrator."
+                                              "Most of the images will be half done comic book pages."
+                                              "Suggest improvements for anatomy, composition, lighting, "
+                                              "camera angles, storytelling principles and design principles."},
+                {"role": "user", "content": prompt}
+            ],
+        )
+        print(f"OpenAI API response: {response}")
+        suggestions = response.choices[0].message.content
+        return jsonify({"suggestion": suggestions}), 200
+    # except OpenAIError as e:
+    #     print(f"OpenAI API error: {e}")
+    #     return jsonify({"error": f"OpenAI API error: {str(e)}"}), 500
+    except Exception as e:
+        print(f"Error generating suggestions: {e}")
+        return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8000, debug=True)
-
-
-# from flask import Flask, request, jsonify, make_response
-# from flask_cors import CORS
-
-# app = Flask(__name__, static_folder='static', static_url_path='/static')
-
-# # Allow requests from localhost:3000
-# CORS(app, resources={r"/*": {"origins": "http://localhost:3000"}})
-
-# images = []
-
-# @app.before_request
-# def log_request_info():
-#     print(f"Method: {request.method}, Path: {request.path}")
-#     print(f"Headers: {request.headers}")
-#     print(f"Data: {request.data}")
-
-# @app.route('/upload', methods=['POST', 'OPTIONS'])
-# def upload_image():
-#     if request.method == 'OPTIONS':
-#         response = make_response()
-#         response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-#         response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
-#         response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-#         return response
-
-#     if 'image' not in request.files:
-#         return make_response(jsonify({"error": "No image file provided"}), 400)
-
-#     file = request.files['image']
-#     url = f"http://localhost:8000/static/{file.filename}"
-#     file.save(f"static/{file.filename}")
-#     images.append({'url': url})
-
-#     response = make_response(jsonify({'message': 'Image uploaded successfully!'}))
-#     response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-#     return response
-
-# @app.route('/submitted', methods=['GET'])
-# def get_images():
-#     response = make_response(jsonify(images))
-#     response.headers['Access-Control-Allow-Origin'] = 'http://localhost:3000'
-#     return response
-
-# if __name__ == '__main__':
-#     # Ensure Flask runs on all network interfaces (0.0.0.0) and port 5000
-#     app.run(host='0.0.0.0', port=8000, debug=True)
-
