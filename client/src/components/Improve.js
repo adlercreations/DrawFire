@@ -39,7 +39,7 @@ function Improve() {
   };
 
   return (
-    <div className="container">
+    <div className="main-container">
       <h2>Select an Image to Improve</h2>
       <div className="image-gallery">
         {images.length === 0 ? (
@@ -61,7 +61,7 @@ function Improve() {
       {loading && <p>Processing image, please wait...</p>}
 
       {response && (
-        <div className="suggestions">
+        <div className="suggestions-container">
           <h3>AI Suggestion:</h3>
           <p>{response}</p>
         </div>

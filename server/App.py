@@ -44,16 +44,24 @@ def analyze_drawing(image_path):
     """Analyze the drawing using OpenCV to generate metadata."""
     try:
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
+        height, width = image.shape[:2]
+
+        # Detect edges and contours
         edges = cv2.Canny(image, threshold1=30, threshold2=100)
         contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
         contour_count = len(contours)
+
+        # Calculate line coverage (amount of non-white pixels)
         non_zero_pixels = np.count_nonzero(edges)
         line_coverage = non_zero_pixels / edges.size
+
+        # Detect the aspect ratio of the drawing
+        aspect_ratio = round(width / height, 2)
 
         return {
             "contour_count": contour_count,
             "line_coverage": round(line_coverage, 2),
+            "aspect_ratio": aspect_ratio,
             "drawing_style": "detailed" if line_coverage > 0.1 else "minimalistic"
         }
     except Exception as e:
@@ -110,8 +118,10 @@ def improve_image():
 
     # Create a prompt for OpenAI based on the image metadata
     prompt = (
-        f"The drawing has {metadata['contour_count']} primary shapes and "
-        f"the style is {metadata['drawing_style']}. How can I improve it?"
+        f"This drawing has {metadata['contour_count']} primary shapes, "
+        f"with a line coverage of {metadata['line_coverage'] * 100}%. "
+        f"The aspect ratio is {metadata['aspect_ratio']}, and the style is "
+        f"{metadata['drawing_style']}. Based on these elements, how can I improve it?"
     )
     print(f"Generated prompt for OpenAI: {prompt}")
 
@@ -120,12 +130,16 @@ def improve_image():
         response = client.chat.completions.create(
             model="gpt-4",
             messages=[
-                {"role": "system", "content": "You are an expert artist and illustrator."
-                                              "Most of the images will be half done comic book pages."
-                                              "Suggest improvements for anatomy, composition, lighting, "
-                                              "camera angles, storytelling principles and design principles."},
+                {
+                    "role": "system",
+                    "content": (
+                        "You are an expert artist and illustrator. You will receive technical metadata "
+                        "about the drawings, and based on that, you should provide specific feedback "
+                        "to improve composition, lighting, anatomy, and storytelling. Avoid generic responses."
+                    ),
+                },
                 {"role": "user", "content": prompt}
-            ],
+            ]
         )
         print(f"OpenAI API response: {response}")
         suggestions = response.choices[0].message.content
