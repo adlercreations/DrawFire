@@ -44,7 +44,7 @@ def analyze_drawing(image_path):
     """Analyze the drawing using OpenCV to generate metadata."""
     try:
         image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-        height, width = image.shape[:2]
+        # height, width = image.shape[:2]
 
         # Detect edges and contours
         edges = cv2.Canny(image, threshold1=30, threshold2=100)
@@ -55,12 +55,23 @@ def analyze_drawing(image_path):
         non_zero_pixels = np.count_nonzero(edges)
         line_coverage = non_zero_pixels / edges.size
 
-        # Detect the aspect ratio of the drawing
-        aspect_ratio = round(width / height, 2)
+        # Calculate line using Hough
+        lines = cv2.HoughLines(edges, 1, np.pi / 180, threshold=150)
+        line_count = len(lines) if lines is not None else 0
+
+        # Detect corners using haerris
+        corners = cv2.cornerHarris(edges, 2, 3, 0.04)
+        corner_count = np.count_nonzero(corners > 0.01 * corners.max())
+
+        # Calculate aspect ratio and bounding box
+        x, y, w, h = cv2.boundingRect(edges)
+        aspect_ratio = round(w / h, 2)
 
         return {
             "contour_count": contour_count,
             "line_coverage": round(line_coverage, 2),
+            "line_count": line_count,
+            "corner_count": corner_count,
             "aspect_ratio": aspect_ratio,
             "drawing_style": "detailed" if line_coverage > 0.1 else "minimalistic"
         }
@@ -118,11 +129,24 @@ def improve_image():
 
     # Create a prompt for OpenAI based on the image metadata
     prompt = (
-        f"This drawing has {metadata['contour_count']} primary shapes, "
-        f"with a line coverage of {metadata['line_coverage'] * 100}%. "
-        f"The aspect ratio is {metadata['aspect_ratio']}, and the style is "
-        f"{metadata['drawing_style']}. Based on these elements, how can I improve it?"
+        f"This is an unfinished drawing with the following details:\n"
+        f"- Contour count: {metadata['contour_count']}\n"
+        f"- Line coverage: {metadata['line_coverage']}\n"
+        f"- Aspect ratio: {metadata['aspect_ratio']}\n"
+        f"- Style: {metadata['drawing_style']}\n"
+        "Provide feedback on:\n"
+        "1. Improving composition and element placement.\n"
+        "2. Refining the character's anatomy and poses.\n"
+        "3. Suggestions for enhancing storytelling through design elements.\n"
+        "4. Recommendations for lighting, shading, and future details.\n"
     )
+
+    # prompt =  (
+    #     f"This drawing has {metadata['contour_count']} primary shapes, "
+    #     f"with a line coverage of {metadata['line_coverage'] * 100}%. "
+    #     f"The aspect ratio is {metadata['aspect_ratio']}, and the style is "
+    #     f"{metadata['drawing_style']}. Based on these elements, how can I improve it?"
+    # )
     print(f"Generated prompt for OpenAI: {prompt}")
 
     # Generate suggestions using OpenAI API
@@ -152,4 +176,4 @@ def improve_image():
         return jsonify({"error": f"Unexpected error: {str(e)}"}), 500
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8000, debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=True)  
