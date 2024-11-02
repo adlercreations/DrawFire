@@ -3,7 +3,8 @@ import React, { useState, useRef } from 'react';
 function Upload({ setImages }) {
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [uploadedURL, setUploadedURL] = useState(null);
+  // const [uploadedURL, setUploadedURL] = useState(null);
+  // const [initialPrompt, setInitialPrompt] = useState('');
   const fileInputRef = useRef(null);
   
   const handleImageChange = (event) => {
@@ -12,10 +13,15 @@ function Upload({ setImages }) {
     setImagePreview(URL.createObjectURL(file));
   };
 
+  // const handlePromptChange = (event) => {
+  //   setInitialPrompt(event.target.value);
+  // };
+
   const handleUpload = async (event) => {
     event.preventDefault();
     const formData = new FormData();
     formData.append('image', image);
+    // formData.append('initialPrompt', initialPrompt);
 
     try {
       const response = await fetch('http://localhost:8000/upload', {
@@ -31,6 +37,7 @@ function Upload({ setImages }) {
 
       setImage(null);
       setImagePreview(null);
+      // setInitialPrompt('');
       fileInputRef.current.value = '';
 
       const imagesResponse = await fetch('http://localhost:8000/submitted');
@@ -71,11 +78,6 @@ function Upload({ setImages }) {
           <button type="submit">Upload</button>
         </div>
       </form>
-      {uploadedURL && (
-        <div>
-          <p>Uploaded Image URL: {uploadedURL}</p>
-        </div>
-      )}
     </div>
   );
 }

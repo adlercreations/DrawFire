@@ -30,7 +30,7 @@ body {
 /* Large title */
 .header h1 {
   font-family: 'Energy Station', sans-serif;
-  font-size: 4rem;
+  font-size: 6rem;
   margin: 0;
   line-height: 1.2;
   margin-bottom: 40px;
@@ -65,6 +65,7 @@ nav a:hover {
   width: 100%;
   padding: 20px;
   max-width: 800px; /* Prevent content from stretching too wide */
+  margin: 0 auto;
   text-align: center; /* Center-align the text */
 }
 
@@ -137,17 +138,17 @@ nav,
 
 /* Upload container */
 .upload-container {
+  
   background-color: #444;
   border-radius: 10px;
   padding: 30px;
   width: 100%;
   max-width: 400px;
-  margin: 20px auto;
+  margin: 0 auto 20px center;
   box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 15px;
   text-align: center;
 }
 
@@ -218,4 +219,64 @@ nav,
 
 .upload-container button:hover {
   background-color: #0056b3;
+}
+
+.prompt-input {
+  width: 100%;
+  margin-top: 15px;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  resize: vertical;
+  font-size: 1rem;
+  font-family: Arial, sans-serif;
+  background-color: #333;
+  color: white;
+}
+
+/* Sidebar image styling */
+.sidebar-image {
+  position: fixed;
+  top: 0;
+  width: 200px;  /* Adjust width as needed */
+  height: 100%;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0.15;  /* Lower opacity to keep it subtle */
+  z-index: -1;  /* Place behind the main content */
+}
+
+/* Left sidebar */
+.sidebar-left {
+  left: 0;
+  background-image: url('./assets/comic_page_01.PNG'); /* Update with the actual path */
+}
+
+/* Right sidebar */
+.sidebar-right {
+  right: 0;
+  background-image: url('./assets/comic_page_04.PNG'); /* Update with the actual path */
+}
+
+/* Make sure the sidebar images are hidden on smaller screens */
+/* @media (max-width: 1200px) {
+  .sidebar-image {
+    display: none;
+  }
+} */
+
+/* Adjust spacing of main content to account for sidebar */
+.main-content {
+  max-width: calc(100% - 400px);  /* Adjust based on sidebar width */
+  margin: 0 auto;
+  padding-left: 200px;  /* Offset for left sidebar */
+  padding-right: 200px; /* Offset for right sidebar */
+}
+
+@media (max-width: 1400px) {
+  .main-content {
+    max-width: calc(100% - 100px);
+    padding-left: 50px;
+    padding-right: 50px;
+  }
 }
